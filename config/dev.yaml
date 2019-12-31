@@ -1,0 +1,9 @@
+schedule: "* * * * *"
+paths_to_backup:
+  - ./test/dir
+  - ./test/test.txt
+glacier:
+  id: myamazonid
+  secret: myamazonsecretsecret
+  region: us-east-1
+  vault_name: myglaciervaultname
