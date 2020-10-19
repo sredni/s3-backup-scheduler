@@ -1,5 +1,8 @@
 # Build image
-
+```
+docker build -t <user>/<repo>:<tag> .
+```
+Cross platform (rpi):
 ```
 docker buildx build --platform linux/arm/v7 -t <user>/<repo>:<tag> --push .
 ``` 
