@@ -1,7 +1,8 @@
 schedule: "* * * * *"
 paths_to_backup:
-  - ./test/dir
-  - ./test/test.txt
+  - test/dir
+  - test/test.txt
+  - test/wildcard/*.txt
 glacier:
   id: myamazonid
   secret: myamazonsecretsecret

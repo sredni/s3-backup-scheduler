@@ -20,10 +20,10 @@ func NewArchiver(cfg Config) *archiver {
 }
 
 func (a archiver) Create(buf io.Writer) error {
-	zr := gzip.NewWriter(buf)
-	tw := tar.NewWriter(zr)
+	zw := gzip.NewWriter(buf)
+	tw := tar.NewWriter(zw)
 
-	for _, path := range a.filePaths  {
+	for _, path := range a.filePaths {
 		err := a.compressPath(path, tw)
 		if err != nil {
 			log.Println("Unable to tar", path, err)
@@ -36,7 +36,7 @@ func (a archiver) Create(buf io.Writer) error {
 		return err
 	}
 	// produce gzip
-	if err := zr.Close(); err != nil {
+	if err := zw.Close(); err != nil {
 		return err
 	}
 
@@ -44,28 +44,40 @@ func (a archiver) Create(buf io.Writer) error {
 }
 
 func (a archiver) compressPath(path string, tw *tar.Writer) error {
-	return filepath.Walk(path, func(file string, fi os.FileInfo, err error) error {
-		header, err := tar.FileInfoHeader(fi, file)
-		if err != nil {
-			return err
-		}
+	paths, err := filepath.Glob(path)
+	if err != nil {
+		return err
+	}
 
-		header.Name = filepath.ToSlash(file)
-
-		if err := tw.WriteHeader(header); err != nil {
-			return err
-		}
-
-		if !fi.IsDir() {
-			data, err := os.Open(file)
+	for _, p := range paths {
+		err := filepath.Walk(p, func(file string, fi os.FileInfo, err error) error {
+			header, err := tar.FileInfoHeader(fi, file)
 			if err != nil {
 				return err
 			}
-			if _, err := io.Copy(tw, data); err != nil {
+
+			header.Name = filepath.ToSlash(file)
+
+			if err := tw.WriteHeader(header); err != nil {
 				return err
 			}
-		}
 
-		return nil
-	})
+			if !fi.IsDir() {
+				data, err := os.Open(file)
+				if err != nil {
+					return err
+				}
+				if _, err := io.Copy(tw, data); err != nil {
+					return err
+				}
+			}
+
+			return nil
+		})
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
