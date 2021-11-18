@@ -34,8 +34,9 @@ func main() {
 	}
 	log.Println("start")
 
+	db := NewFileDB()
 	archiver := NewArchiver(cfg)
-	uploader := NewUploader(cfg)
+	uploader := NewUploader(cfg, db)
 	scheduler := cron.New()
 
 	_, err = scheduler.AddFunc(cfg.Schedule, func() {
