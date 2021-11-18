@@ -1,4 +1,5 @@
 schedule: "* * * * *"
+archive_ttl: "10m"
 paths_to_backup:
   - test/dir
   - test/test.txt

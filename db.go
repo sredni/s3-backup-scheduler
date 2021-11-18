@@ -44,14 +44,14 @@ type fileDB struct {
 }
 
 func NewFileDB() *fileDB {
-	file, _ := os.OpenFile(archivesDBFilename, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
+	file, _ := os.OpenFile(archivesDBFilename, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0755)
 
 	return &fileDB{
 		file: file,
 	}
 }
 
-func (db *fileDB) writeRecord(record dbRecord) error {
+func (db *fileDB) WriteRecord(record dbRecord) error {
 	db.lock.Lock()
 	defer db.lock.Unlock()
 
@@ -66,12 +66,39 @@ func (db *fileDB) writeRecord(record dbRecord) error {
 	return nil
 }
 
-func (db *fileDB) readRecords() ([]*dbRecord, error) {
+func (db *fileDB) WriteRecords(records []dbRecord) error {
+	db.lock.Lock()
+	defer db.lock.Unlock()
+
+	err := db.file.Truncate(0)
+	if err != nil {
+		return err
+	}
+
+	w := csv.NewWriter(db.file)
+	defer w.Flush()
+
+	for _, record := range records {
+		err := w.Write(record.toDB())
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (db *fileDB) ReadRecords() ([]*dbRecord, error) {
 	db.lock.Lock()
 	defer db.lock.Unlock()
 
 	var records []*dbRecord
 	r := csv.NewReader(db.file)
+	_, err := db.file.Seek(0, 0)
+	if err != nil {
+		return nil, err
+	}
+
 	lines, err := r.ReadAll()
 	if err != nil {
 		return nil, err

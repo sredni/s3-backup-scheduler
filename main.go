@@ -3,18 +3,21 @@ package main
 import (
 	"bytes"
 	"flag"
-	"github.com/robfig/cron/v3"
-	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"log"
 	"os"
 	"os/signal"
+	"time"
+
+	"github.com/robfig/cron/v3"
+	"gopkg.in/yaml.v2"
 )
 
 type Config struct {
 	Glacier       Glacier
 	PathsToBackup []string `yaml:"paths_to_backup"`
 	Schedule      string
+	ArchiveTTL    time.Duration `yaml:"archive_ttl"`
 }
 
 type Glacier struct {
@@ -42,14 +45,22 @@ func main() {
 	_, err = scheduler.AddFunc(cfg.Schedule, func() {
 		log.Println("run")
 		var buf bytes.Buffer
+
 		err := archiver.Create(&buf)
 		if err != nil {
 			log.Println("Unable to create archive", err)
 		}
+
 		err = uploader.Upload(bytes.NewReader(buf.Bytes()))
 		if err != nil {
 			log.Println("Unable to upload archive", err)
 		}
+
+		err = uploader.Cleanup()
+		if err != nil {
+			log.Println("Unable to cleanup archives", err)
+		}
+
 		log.Println("done")
 	})
 	if err != nil {
